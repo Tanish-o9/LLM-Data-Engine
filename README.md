@@ -1,33 +1,38 @@
 # LLM Data Engine – Data Quality & Fine-Tuning Pipeline
 
+[![CI](https://github.com/Tanish-o9/LLM-Data-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/Tanish-o9/LLM-Data-Engine/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![Author](https://img.shields.io/badge/Author-Tanish--o9-181717?logo=github&logoColor=white)](https://github.com/Tanish-o9)
 [![GitHub Repo](https://img.shields.io/badge/GitHub-LLM--Data--Engine-blue?logo=github)](https://github.com/Tanish-o9/LLM-Data-Engine)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/)
-[![HuggingFace](https://img.shields.io/badge/HuggingFace-Transformers-FFD21E?logo=huggingface&logoColor=black)](https://huggingface.co/)
+[![HuggingFace](https://img.shields.io/badge/HuggingFace-Datasets-FFD21E?logo=huggingface&logoColor=black)](https://huggingface.co/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-Studio-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
 
-A production-grade, human-readable data curation and LoRA fine-tuning pipeline for Large Language Models.
+A production-grade, human-readable data curation, DPO alignment, and LoRA/QLoRA fine-tuning pipeline for Large Language Models.
 
-This engine cleans, validates, deduplicates, filters, redacts PII, decontaminates, and optionally augments instruction-tuning datasets. It then compares model performance across three controlled data regimes (Raw vs. Cleaned vs. Cleaned + Synthetic) on a held-out benchmark.
+This engine cleans, validates, deduplicates, filters, redacts PII, decontaminates, scores curriculum complexity, generates DPO preference pairs, and optionally augments instruction-tuning datasets. It then compares model performance across three controlled data regimes (Raw vs. Cleaned vs. Cleaned + Synthetic) on a held-out benchmark.
 
 ---
 
 ## Architecture Overview
 
 ```mermaid
-flowchart LR
-    A[Raw Dataset\nJSON/JSONL/CSV/Chat] --> B[Validation & Normalization]
-    B --> C[Deduplication\nExact + MinHash LSH + Semantic]
-    C --> D[Quality Filtering\nRule-based Scoring]
-    D --> E[Safety & Prompt Injection\nJailbreak Filter]
-    E --> F[PII Redaction\nExplainable Regex]
-    F --> G[Decontamination\nN-Gram & Exact Overlap]
-    G --> H[Optional Synthetic Data\nGroq API]
-    H --> I[LoRA Fine-Tuning\nPEFT + Transformers]
-    I --> J[Evaluation & LLM Judge\nHeld-Out Benchmark]
-    J --> K[Streamlit Dashboard]
+flowchart TD
+    A[Raw Dataset\nJSON / JSONL / CSV / Multi-Turn Chat] --> B[Validation & Normalization]
+    B --> C[3-Stage Deduplication\nExact SHA-256 + MinHash LSH + Semantic]
+    C --> D[Quality Filtering\nRule-based Scoring & Heuristics]
+    D --> E[Safety & Adversarial Filter\nPrompt Injection & Jailbreak Defense]
+    E --> F[PII Redaction\nExplainable Regex Sanitization]
+    F --> G[Decontamination\nN-Gram & Exact Overlap Purge]
+    G --> H[Cognitive Complexity\nFlesch-Kincaid & Reasoning Tiers]
+    H --> I[DPO Preference Alignment\nChosen vs Rejected Pairs]
+    H --> J[Optional Synthetic Augmentation\nGroq API LLaMA-3.3]
+    I --> K[Hugging Face Hub Exporter\nDirect push_to_hub]
+    J --> L[LoRA / QLoRA 4-bit Training\nPEFT + Transformers]
+    L --> M[Evaluation & LLM Judge\nHeld-Out Benchmark]
+    M --> N[Streamlit Studio Dashboard]
 ```
 
 ---
@@ -70,22 +75,36 @@ flowchart LR
    - Validates JSON format and runs quality checks before adding synthetic data.
    - Graceful fallback when an API key is not present.
 
-9. **Three-Way LoRA Fine-Tuning**
-   - PyTorch + Hugging Face Transformers + PEFT LoRA.
-   - Standard causal language model (`gpt2`) with prompt masking (`-100` on instruction tokens) so loss is computed solely on the responses.
-   - Hardware-aware: uses CUDA GPU acceleration with automatic fallback to CPU.
-   - Tracks wall-clock training time (seconds) and peak GPU VRAM (MB).
+9. **Cognitive Complexity & Curriculum Learning Scoring**
+   - Heuristic reasoning depth analysis, technical keyword detection, and Flesch-Kincaid readability scoring.
+   - Automatically segments instructions into **Easy**, **Medium**, and **Hard** tiers for progressive curriculum training.
 
-10. **Held-Out Evaluation & LLM-as-a-Judge Benchmark**
-   - Evaluates all three models on the exact same held-out test set (`data/eval_sample.jsonl`).
-   - Measures cross-entropy evaluation loss and perplexity ($\exp(\text{loss})$).
-   - **Automated LLM-as-a-Judge**: Evaluates model generations on **Relevance**, **Coherence**, and **Overall Quality** on a $1.0 - 5.0$ scale via Groq API (or heuristic fallback).
+10. **Direct Preference Optimization (DPO) Dataset Builder**
+    - Constructs paired alignment data (`instruction`, `chosen`, `rejected`) for DPO training or reward modeling.
+    - Pairs high-quality completions against explainably degraded negative variants (token repetition loops, mid-sentence conjunction cuts, evasive refusals).
 
-11. **Interactive Streamlit Dashboard**
-    - Upload custom datasets or test built-in samples.
-    - Inspect stage-by-stage audit tables (removed duplicates, filtered low-quality pairs, PII redactions).
-    - Trigger 3-way training and explore comparison charts.
-    - Download processed datasets (`.jsonl`) and full audit reports (`.json` / `.csv`).
+11. **Hugging Face Hub Exporter**
+    - Seamlessly pushes curated datasets and DPO preference pairs directly to **Hugging Face Datasets** (`huggingface.co/datasets`) via API token.
+
+12. **Three-Way LoRA & QLoRA Fine-Tuning**
+    - PyTorch + Hugging Face Transformers + PEFT LoRA with optional **4-bit (NF4) / 8-bit QLoRA** quantization via `bitsandbytes`.
+    - Prompt masking (`-100` on instruction tokens) so loss is computed solely on responses.
+    - Hardware-aware: uses CUDA GPU acceleration with automatic fallback to CPU.
+    - Tracks wall-clock training time (seconds) and peak GPU VRAM (MB).
+
+13. **Held-Out Evaluation & LLM-as-a-Judge Benchmark**
+    - Evaluates all three models on the exact same held-out test set (`data/eval_sample.jsonl`).
+    - Measures cross-entropy evaluation loss and perplexity ($\exp(\text{loss})$).
+    - **Automated LLM-as-a-Judge**: Evaluates model generations on **Relevance**, **Coherence**, and **Overall Quality** on a $1.0 - 5.0$ scale via Groq API (or heuristic fallback).
+
+14. **Production Dockerization & CI/CD**
+    - Multi-stage **Dockerfile** & **docker-compose.yml** for instant single-command deployment.
+    - Automated GitHub Actions CI workflow running Python 3.10 & 3.11 test matrix on every commit.
+
+15. **Interactive Streamlit Studio Dashboard (8 Specialized Tabs)**
+    - Direct Pair Creator, JSON/CSV paste, and file ingestion.
+    - Real-time diagnostic playground with live PII & safety checks.
+    - DPO preference inspector, curriculum complexity breakdown charts, 3-way training runner, and parallel interactive prompt inference.
 
 ---
 
@@ -93,9 +112,11 @@ flowchart LR
 
 ```
 LLM Data Engine/
+├── .github/workflows/
+│   └── ci.yml                # Automated GitHub Actions test workflow
 ├── app/
 │   ├── __init__.py
-│   └── dashboard.py          # Streamlit interactive application
+│   └── dashboard.py          # 8-tab Streamlit Studio interactive application
 ├── config.py                 # Centralized configuration and hyperparameters
 ├── data/
 │   ├── raw_sample.jsonl      # Bundled raw dataset with duplicates, PII, and noise
@@ -105,16 +126,30 @@ LLM Data Engine/
 │   ├── loader.py             # File ingestion, schema mapping, and dataset statistics
 │   ├── validator.py          # Field validation and whitespace normalization
 │   ├── deduplicator.py       # SHA-256 and MinHash LSH deduplication
+│   ├── semantic_dedup.py     # Sentence-Transformers semantic cosine deduplication
 │   ├── quality_filter.py     # Rule-based filtering and quality scoring
+│   ├── safety_filter.py      # Adversarial prompt injection & jailbreak detection
 │   ├── pii_scrubber.py       # Regex-based PII detection and redaction
 │   ├── decontaminator.py     # Exact and n-gram test set decontamination
-│   └── synthetic.py          # Optional Groq API synthetic data generation
-├── experiments/              # Model checkpoints and benchmark results (JSON/CSV)
-├── output/                   # Processed datasets and pipeline audit reports
+│   ├── synthetic.py          # Groq API synthetic data generator
+│   ├── complexity_scorer.py  # Readability & cognitive difficulty scoring
+│   ├── preference_builder.py # DPO chosen/rejected preference pair builder
+│   └── hf_exporter.py        # Hugging Face Hub dataset publishing
+├── experiments/              # Checkpoints and benchmark results (JSON/CSV)
+├── output/                   # Processed datasets, DPO pairs, and audit reports
+├── training/
+│   ├── __init__.py
+│   ├── dataset_builder.py    # Tokenization & prompt loss masking (-100)
+│   ├── trainer.py            # PEFT LoRA / QLoRA training loop with CUDA telemetry
+│   ├── evaluator.py          # Cross-entropy loss, perplexity, and inference
+│   └── judge.py              # LLM-as-a-Judge scorecard evaluation
+├── Dockerfile                # Containerized runtime image
+├── docker-compose.yml        # Multi-container orchestration
+├── LICENSE                   # Open-source MIT License
 ├── pipeline.py               # Complete programmatic pipeline runner
 ├── requirements.txt          # Python dependencies
 ├── run_experiments.py        # 3-way fine-tuning and evaluation script
-├── test_pipeline.py          # Automated unit and integration test suite
+├── test_pipeline.py          # 15 automated unit and integration tests
 ├── .env.example              # Environment variables template
 ├── .gitignore                # Git ignore configuration
 └── README.md                 # Project documentation and real benchmark results
@@ -170,6 +205,13 @@ Open your browser at `http://localhost:8501`.
 ```bash
 python -m unittest test_pipeline.py
 ```
+
+### Option E: Run with Docker & Docker Compose
+Spin up the entire application stack in an isolated container:
+```bash
+docker compose up --build
+```
+Access the Streamlit Studio interface at `http://localhost:8501`.
 
 ---
 
