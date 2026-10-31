@@ -48,13 +48,42 @@ def train_lora_model(
 
     start_time = time.time()
 
-    # 1. Load Tokenizer & Base Model
+    # 1. Load Tokenizer & Base Model (with optional QLoRA quantization)
     tokenizer = AutoTokenizer.from_pretrained(config.model_name)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    base_model = AutoModelForCausalLM.from_pretrained(config.model_name)
-    base_model.to(device)
+    quantization_config = None
+    if (getattr(config, "use_qlora_4bit", False) or getattr(config, "use_qlora_8bit", False)) and device.type == "cuda":
+        try:
+            from transformers import BitsAndBytesConfig
+            if config.use_qlora_4bit:
+                quantization_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_use_double_quant=True,
+                    bnb_4bit_compute_dtype=torch.float16,
+                )
+            elif config.use_qlora_8bit:
+                quantization_config = BitsAndBytesConfig(load_in_8bit=True)
+        except (ImportError, Exception):
+            quantization_config = None
+
+    if quantization_config is not None:
+        try:
+            from peft import prepare_model_for_kbit_training
+            base_model = AutoModelForCausalLM.from_pretrained(
+                config.model_name,
+                quantization_config=quantization_config,
+                device_map="auto",
+            )
+            base_model = prepare_model_for_kbit_training(base_model)
+        except Exception:
+            base_model = AutoModelForCausalLM.from_pretrained(config.model_name)
+            base_model.to(device)
+    else:
+        base_model = AutoModelForCausalLM.from_pretrained(config.model_name)
+        base_model.to(device)
 
     # 2. Configure LoRA
     # Detect appropriate target modules for gpt2/distilgpt2 vs llama

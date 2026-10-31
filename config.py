@@ -89,3 +89,5 @@ class TrainingConfig:
     lora_dropout: float = 0.05
     lora_target_modules: List[str] = field(default_factory=lambda: ["c_attn", "c_proj"])
     use_cuda_if_available: bool = True
+    use_qlora_4bit: bool = False             # 4-bit NormalFloat (NF4) quantization via bitsandbytes
+    use_qlora_8bit: bool = False             # 8-bit quantization via bitsandbytes
