@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Environment Variables
+.env
+
+# Output & Experiments Checkpoints
+output/
+experiments/exp_*/
+*.log
+
+# Streamlit
+.streamlit/
+
