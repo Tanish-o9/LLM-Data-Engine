@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 import unittest
 
-from config import DeduplicationConfig, DecontaminationConfig, QualityConfig
+from config import DATA_DIR, DeduplicationConfig, DecontaminationConfig, QualityConfig
 from engine.loader import get_dataset_stats, load_dataset, parse_chat_messages
 from engine.validator import normalize_text, validate_and_normalize
 from engine.deduplicator import deduplicate_dataset, compute_sha256, get_shingles
@@ -130,8 +130,8 @@ class TestDataEngine(unittest.TestCase):
         self.assertEqual(len(contaminated), 1)
 
     def test_full_pipeline_sample(self):
-        sample_path = Path("data/raw_sample.jsonl")
-        eval_path = Path("data/eval_sample.jsonl")
+        sample_path = DATA_DIR / "raw_sample.jsonl"
+        eval_path = DATA_DIR / "eval_sample.jsonl"
         res = run_pipeline(sample_path, eval_path)
 
         self.assertIn("summary", res)

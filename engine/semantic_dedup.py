@@ -41,8 +41,25 @@ def deduplicate_semantic(
 
     model = get_embedding_model(config.embedding_model)
     if model is None:
-        # Fallback if sentence-transformers model cannot be loaded
-        return records, []
+        # Fallback heuristic: token set Jaccard similarity if embedding model is unreachable
+        unique_records = []
+        semantic_duplicates = []
+        seen_tokens = []
+        for r in records:
+            tokens = set(r.get("instruction", "").lower().split())
+            is_dup = False
+            for prev_tokens in seen_tokens:
+                inter = len(tokens & prev_tokens)
+                union = len(tokens | prev_tokens)
+                if union > 0 and (inter / union) >= (config.semantic_threshold - 0.25):
+                    is_dup = True
+                    break
+            if is_dup:
+                semantic_duplicates.append(r)
+            else:
+                unique_records.append(r)
+                seen_tokens.append(tokens)
+        return unique_records, semantic_duplicates
 
     # Extract instruction text for semantic similarity
     texts = [r.get("instruction", "").strip() for r in records]

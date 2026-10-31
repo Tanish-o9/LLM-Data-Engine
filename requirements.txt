@@ -2,11 +2,13 @@ pandas>=2.0.0
 numpy>=1.24.0
 torch>=2.2.0
 transformers>=4.40.0
+sentence-transformers>=2.6.0
 peft>=0.10.0
 datasets>=2.18.0
+huggingface-hub>=0.22.0
 datasketch>=2.0.0
 groq>=0.9.0
 streamlit>=1.35.0
+plotly>=5.20.0
 matplotlib>=3.8.0
 python-dotenv>=1.0.0
-

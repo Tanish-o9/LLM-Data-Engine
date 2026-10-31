@@ -30,6 +30,8 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Test Suite
+        env:
+          PYTHONPATH: .
         run: |
           python -m unittest discover -s . -p "test_*.py" -v
 
