@@ -15,7 +15,14 @@ import io
 import json
 import os
 from pathlib import Path
+import sys
 from typing import Any, Dict, List
+
+# Ensure project root is in sys.path so imports resolve on Streamlit Cloud & Linux runners
+_ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(_ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(_ROOT_DIR))
+
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
