@@ -26,6 +26,8 @@ from engine.safety_filter import filter_safety
 from engine.pii_scrubber import scrub_pii
 from engine.decontaminator import decontaminate_dataset
 from engine.synthetic import generate_synthetic_data
+from engine.preference_builder import generate_dpo_dataset
+from engine.complexity_scorer import annotate_dataset_with_complexity
 
 
 def run_pipeline(
@@ -80,10 +82,16 @@ def run_pipeline(
     # Cleaned dataset (without synthetic)
     cleaned_dataset = decontaminated
 
-    # Cleaned + Synthetic dataset
-    cleaned_plus_synthetic = list(cleaned_dataset) + list(synthetic_records)
+    # 10. Complexity & Difficulty Scoring (Curriculum Learning)
+    cleaned_annotated, complexity_summary = annotate_dataset_with_complexity(cleaned_dataset)
 
-    cleaned_stats = get_dataset_stats(cleaned_dataset)
+    # 11. DPO Preference Dataset Generation (Direct Preference Optimization)
+    dpo_pairs = generate_dpo_dataset(cleaned_dataset)
+
+    # Cleaned + Synthetic dataset
+    cleaned_plus_synthetic = list(cleaned_annotated) + list(synthetic_records)
+
+    cleaned_stats = get_dataset_stats(cleaned_annotated)
     cleaned_plus_synth_stats = get_dataset_stats(cleaned_plus_synthetic)
 
     # Build comprehensive audit report
@@ -98,14 +106,16 @@ def run_pipeline(
             "unsafe_records_removed": len(unsafe_records),
             "pii_records_scrubbed": pii_report["records_modified"],
             "contaminated_removed": len(contaminated_records),
-            "cleaned_total": len(cleaned_dataset),
+            "cleaned_total": len(cleaned_annotated),
             "synthetic_added": len(synthetic_records),
             "cleaned_plus_synth_total": len(cleaned_plus_synthetic),
+            "dpo_pairs_generated": len(dpo_pairs),
         },
         "stats": {
             "raw": raw_stats,
             "cleaned": cleaned_stats,
             "cleaned_plus_synthetic": cleaned_plus_synth_stats,
+            "complexity_summary": complexity_summary,
         },
         "details": {
             "invalid_records": invalid_records,
@@ -117,11 +127,13 @@ def run_pipeline(
             "pii_audit": pii_report,
             "contaminated_records": contaminated_records,
             "synthetic_report": synthetic_report,
+            "complexity_breakdown": complexity_summary,
         },
         "datasets": {
             "raw": raw_data,
-            "cleaned": cleaned_dataset,
+            "cleaned": cleaned_annotated,
             "cleaned_plus_synthetic": cleaned_plus_synthetic,
+            "dpo_preference": dpo_pairs,
             "eval": eval_data,
         },
     }
@@ -144,6 +156,11 @@ def save_pipeline_output(result: Dict[str, Any], output_dir: Optional[Path] = No
         for row in result["datasets"]["cleaned_plus_synthetic"]:
             f.write(json.dumps(row) + "\n")
 
+    dpo_path = out_dir / "dpo_dataset.jsonl"
+    with open(dpo_path, "w", encoding="utf-8") as f:
+        for row in result["datasets"].get("dpo_preference", []):
+            f.write(json.dumps(row) + "\n")
+
     report_path = out_dir / "pipeline_report.json"
     serializable_report = {
         "summary": result["summary"],
@@ -158,6 +175,7 @@ def save_pipeline_output(result: Dict[str, Any], output_dir: Optional[Path] = No
     return {
         "cleaned_path": str(cleaned_path),
         "cleaned_synth_path": str(cleaned_synth_path),
+        "dpo_path": str(dpo_path),
         "report_path": str(report_path),
     }
 

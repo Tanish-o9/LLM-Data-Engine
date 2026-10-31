@@ -9,6 +9,9 @@ from .safety_filter import filter_safety
 from .pii_scrubber import scrub_pii
 from .decontaminator import decontaminate_dataset
 from .synthetic import generate_synthetic_data
+from .preference_builder import generate_dpo_dataset, build_dpo_pairs_from_candidates, synthesize_negative_variant
+from .complexity_scorer import score_prompt_complexity, annotate_dataset_with_complexity
+from .hf_exporter import export_to_hf_hub
 
 __all__ = [
     "load_dataset",
@@ -23,5 +26,10 @@ __all__ = [
     "scrub_pii",
     "decontaminate_dataset",
     "generate_synthetic_data",
+    "generate_dpo_dataset",
+    "build_dpo_pairs_from_candidates",
+    "synthesize_negative_variant",
+    "score_prompt_complexity",
+    "annotate_dataset_with_complexity",
+    "export_to_hf_hub",
 ]
-

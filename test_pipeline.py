@@ -139,6 +139,51 @@ class TestDataEngine(unittest.TestCase):
         self.assertGreater(res["summary"]["raw_total"], 0)
         self.assertGreater(res["summary"]["cleaned_total"], 0)
         self.assertLess(res["summary"]["cleaned_total"], res["summary"]["raw_total"])
+        self.assertIn("dpo_pairs_generated", res["summary"])
+        self.assertGreaterEqual(res["summary"]["dpo_pairs_generated"], 1)
+
+    def test_dpo_preference_generation(self):
+        from engine.preference_builder import generate_dpo_dataset, synthesize_negative_variant
+        records = [
+            {"instruction": "What is Python?", "response": "Python is a versatile high-level programming language."}
+        ]
+        dpo_pairs = generate_dpo_dataset(records)
+        self.assertEqual(len(dpo_pairs), 1)
+        pair = dpo_pairs[0]
+        self.assertEqual(pair["instruction"], "What is Python?")
+        self.assertEqual(pair["chosen"], "Python is a versatile high-level programming language.")
+        self.assertIn("rejected", pair)
+        self.assertIn("rejected_reason", pair)
+        self.assertGreater(len(pair["rejected"]), 0)
+
+    def test_complexity_scorer(self):
+        from engine.complexity_scorer import score_prompt_complexity, annotate_dataset_with_complexity
+        simple = score_prompt_complexity("Hello", "Hi there.")
+        self.assertEqual(simple["difficulty_tier"], "Easy")
+
+        hard_prompt = (
+            "Analyze and explain step by step why gradient descent optimizes deep neural networks. "
+            "Derive the backpropagation algorithm with mathematical equations and calculate the time complexity."
+        )
+        hard = score_prompt_complexity(hard_prompt, "Backpropagation calculates gradients via the chain rule.")
+        self.assertIn(hard["difficulty_tier"], ["Medium", "Hard"])
+        self.assertGreater(hard["complexity_score"], simple["complexity_score"])
+
+        records = [
+            {"instruction": "Simple greeting", "response": "Hello world."},
+            {"instruction": hard_prompt, "response": "Detailed analysis."},
+        ]
+        annotated, summary = annotate_dataset_with_complexity(records)
+        self.assertEqual(len(annotated), 2)
+        self.assertIn("distribution_count", summary)
+        self.assertIn("avg_complexity_score", summary)
+
+    def test_hf_exporter_no_token(self):
+        from engine.hf_exporter import export_to_hf_hub
+        records = [{"instruction": "Test", "response": "Output"}]
+        result = export_to_hf_hub(records, repo_id="test/repo", token="")
+        self.assertEqual(result["status"], "error")
+        self.assertIn("token not found", result["message"].lower())
 
 
 if __name__ == "__main__":

@@ -39,6 +39,9 @@ from engine.pii_scrubber import scrub_text
 from engine.safety_filter import check_safety_violations
 from pipeline import run_pipeline, save_pipeline_output
 from run_experiments import run_three_way_experiments
+from engine.preference_builder import generate_dpo_dataset
+from engine.complexity_scorer import score_prompt_complexity, annotate_dataset_with_complexity
+from engine.hf_exporter import export_to_hf_hub
 
 try:
     from training.evaluator import generate_single_completion
@@ -233,8 +236,11 @@ tabs = st.tabs([
     "📥 Ingestion & Live Editor",
     "🔬 Real-Time Diagnostics Playground",
     "📊 Pipeline Analytics & Audit",
+    "⚖️ DPO Preference Alignment",
+    "🧠 Curriculum & Complexity",
     "🏋️ 3-Way LoRA Benchmark",
     "💬 Live Interactive Model Inference",
+    "🤗 Hugging Face Hub Exporter",
 ])
 
 
@@ -579,9 +585,111 @@ with tabs[2]:
 
 
 # =========================================================
-# TAB 4: 3-Way LoRA Benchmark & LLM Judge
+# TAB 4: DPO Preference Alignment
 # =========================================================
 with tabs[3]:
+    st.subheader("⚖️ Direct Preference Optimization (DPO) & RLHF Pairs")
+    st.markdown("""
+    Generates paired alignment data (`instruction`, `chosen`, `rejected`) for **DPO** training or reward modeling.
+    Each pair contrasts a high-quality, sanitized completion against an explainably degraded negative variant.
+    """)
+
+    report = st.session_state.get("pipeline_report")
+    if report and "dpo_preference" in report.get("datasets", {}):
+        dpo_data = report["datasets"]["dpo_preference"]
+    else:
+        sample_cleaned = load_dataset(DATA_DIR / "raw_sample.jsonl")[:6]
+        dpo_data = generate_dpo_dataset(sample_cleaned)
+
+    st.markdown(f"**Generated DPO Pairs ({len(dpo_data)} total pairs):**")
+
+    dpo_display = []
+    for p in dpo_data:
+        dpo_display.append({
+            "Instruction": p.get("instruction", "")[:60] + "...",
+            "Chosen Response": p.get("chosen", "")[:60] + "...",
+            "Rejected Response": p.get("rejected", "")[:60] + "...",
+            "Chosen Score": p.get("chosen_score", 1.0),
+            "Rejected Score": p.get("rejected_score", 0.0),
+            "Quality Delta": p.get("score_delta", 1.0),
+            "Failure Mode": p.get("rejected_reason", "Perturbation"),
+        })
+    st.dataframe(pd.DataFrame(dpo_display), use_container_width=True)
+
+    with st.expander("🔍 Inspect Individual Preference Pair", expanded=True):
+        if dpo_data:
+            pair_idx = st.selectbox("Select Pair to Inspect:", range(len(dpo_data)), format_func=lambda i: f"Pair #{i+1}: {dpo_data[i].get('instruction','')[:40]}...")
+            sel_pair = dpo_data[pair_idx]
+            st.markdown(f"**Instruction:** {sel_pair.get('instruction')}")
+            col_chosen, col_rejected = st.columns(2)
+            with col_chosen:
+                st.success(f"✅ **Chosen Completion (Score: {sel_pair.get('chosen_score')})**\n\n{sel_pair.get('chosen')}")
+            with col_rejected:
+                st.error(f"❌ **Rejected Completion (Score: {sel_pair.get('rejected_score')})**\n*Reason: {sel_pair.get('rejected_reason')}*\n\n{sel_pair.get('rejected')}")
+
+    dpo_jsonl = "\n".join(json.dumps(p) for p in dpo_data)
+    st.download_button(
+        "⬇️ Download DPO Dataset (JSONL)",
+        data=dpo_jsonl,
+        file_name="dpo_preference_dataset.jsonl",
+        mime="application/json",
+        type="primary",
+    )
+
+
+# =========================================================
+# TAB 5: Curriculum & Complexity Scoring
+# =========================================================
+with tabs[4]:
+    st.subheader("🧠 Cognitive Difficulty & Curriculum Learning Analytics")
+    st.markdown("""
+    Classifies instructions into cognitive tiers (**Easy**, **Medium**, **Hard**) using reasoning depth heuristics,
+    technical density, and Flesch-Kincaid readability metrics to facilitate curriculum fine-tuning.
+    """)
+
+    report = st.session_state.get("pipeline_report")
+    if report and "cleaned" in report.get("datasets", {}):
+        eval_records = report["datasets"]["cleaned"]
+    else:
+        eval_records = load_dataset(DATA_DIR / "raw_sample.jsonl")
+
+    annotated_records, comp_summary = annotate_dataset_with_complexity(eval_records)
+
+    c_m1, c_m2, c_m3, c_m4 = st.columns(4)
+    dist_counts = comp_summary.get("distribution_count", {})
+    c_m1.metric("🟢 Easy Tiers", dist_counts.get("Easy", 0))
+    c_m2.metric("🟡 Medium Tiers", dist_counts.get("Medium", 0))
+    c_m3.metric("🔴 Hard Tiers", dist_counts.get("Hard", 0))
+    c_m4.metric("📈 Avg Complexity", comp_summary.get("avg_complexity_score", 0.0))
+
+    fig_comp = px.bar(
+        x=list(dist_counts.keys()),
+        y=list(dist_counts.values()),
+        color=list(dist_counts.keys()),
+        color_discrete_map={"Easy": "#10b981", "Medium": "#f59e0b", "Hard": "#ef4444"},
+        title="Curriculum Difficulty Distribution",
+        labels={"x": "Tier", "y": "Number of Samples"},
+    )
+    fig_comp.update_layout(height=320, margin=dict(t=40, b=20, l=20, r=20))
+    st.plotly_chart(fig_comp, use_container_width=True)
+
+    st.markdown("##### Annotated Dataset with Difficulty Metrics")
+    comp_df = pd.DataFrame([
+        {
+            "Tier": r.get("difficulty_tier"),
+            "Score": r.get("complexity_score"),
+            "Grade Level": r.get("flesch_kincaid_grade"),
+            "Instruction": r.get("instruction", "")[:70] + "...",
+        }
+        for r in annotated_records
+    ])
+    st.dataframe(comp_df, use_container_width=True)
+
+
+# =========================================================
+# TAB 6: 3-Way LoRA Benchmark & LLM Judge
+# =========================================================
+with tabs[5]:
     st.subheader("4. Three-Way LoRA Fine-Tuning & LLM-as-a-Judge Benchmark")
 
     st.markdown("""
@@ -669,10 +777,10 @@ with tabs[3]:
 
 
 # =========================================================
-# TAB 5: Live Interactive Model Inference
+# TAB 7: Live Interactive Model Inference
 # =========================================================
-with tabs[4]:
-    st.subheader("5. Live Interactive Prompt Testing Across All 3 Models")
+with tabs[6]:
+    st.subheader("7. Live Interactive Prompt Testing Across All 3 Models")
     st.markdown("Type ANY question or instruction below to query all three trained checkpoints in parallel.")
 
     user_query = st.text_input(
@@ -705,4 +813,55 @@ with tabs[4]:
                         except Exception as e:
                             st.error(f"Generation error: {e}")
                 else:
-                    st.warning("Checkpoint not found. Run 3-Way Training in Tab 4 first.")
+                    st.warning("Checkpoint not found. Run 3-Way Training in Tab 6 first.")
+
+
+# =========================================================
+# TAB 8: Hugging Face Hub Exporter
+# =========================================================
+with tabs[7]:
+    st.subheader("🤗 Export Datasets Directly to Hugging Face Hub")
+    st.markdown("""
+    Publish your sanitized instruction dataset or DPO preference pairs directly to **huggingface.co/datasets**
+    so the open-source community or your team can use it immediately.
+    """)
+
+    hf_col1, hf_col2 = st.columns(2)
+    with hf_col1:
+        hf_repo_id = st.text_input("Hugging Face Repo ID (e.g. username/repo-name)", value="Tanish-o9/llm-curated-dataset")
+        export_target = st.selectbox("Select Dataset to Export:", ["Cleaned SFT Dataset", "DPO Preference Pairs", "Cleaned + Synthetic Dataset"])
+
+    with hf_col2:
+        hf_user_token = st.text_input("Hugging Face API Token (optional if HF_TOKEN env var is set)", type="password", help="Requires a token with 'Write' role from https://huggingface.co/settings/tokens")
+        is_private = st.checkbox("Make Repository Private", value=False)
+
+    if st.button("🚀 Publish Dataset to Hugging Face Hub", type="primary"):
+        report = st.session_state.get("pipeline_report")
+        if not report:
+            st.error("Please run the pipeline or load data in Tab 1 first.")
+        else:
+            if export_target == "Cleaned SFT Dataset":
+                records_to_export = report["datasets"]["cleaned"]
+            elif export_target == "DPO Preference Pairs":
+                records_to_export = report["datasets"].get("dpo_preference", [])
+            else:
+                records_to_export = report["datasets"]["cleaned_plus_synthetic"]
+
+            if not records_to_export:
+                st.warning("Selected dataset is empty.")
+            else:
+                with st.spinner(f"Publishing {len(records_to_export)} records to Hugging Face Hub ({hf_repo_id})..."):
+                    upload_res = export_to_hf_hub(
+                        records=records_to_export,
+                        repo_id=hf_repo_id.strip(),
+                        token=hf_user_token.strip() if hf_user_token else None,
+                        private=is_private,
+                    )
+
+                if upload_res["status"] == "success":
+                    st.success(f"🎉 {upload_res['message']}")
+                    st.markdown(f"👉 **View on Hugging Face:** [{upload_res['repo_url']}]({upload_res['repo_url']})")
+                else:
+                    st.error(f"❌ {upload_res['message']}")
+                    if "guide" in upload_res:
+                        st.info(upload_res["guide"])
