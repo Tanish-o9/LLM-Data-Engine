@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  llm-data-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: llm-data-engine:latest
+    container_name: llm_data_engine_app
+    ports:
+      - "8501:8501"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - HF_TOKEN=${HF_TOKEN:-}
+    volumes:
+      - ./output:/app/output
+      - ./experiments:/app/experiments
+      - ./data:/app/data
+    restart: unless-stopped
+
