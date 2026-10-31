@@ -1,5 +1,13 @@
 # LLM Data Engine – Data Quality & Fine-Tuning Pipeline
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Author](https://img.shields.io/badge/Author-Tanish--o9-181717?logo=github&logoColor=white)](https://github.com/Tanish-o9)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-LLM--Data--Engine-blue?logo=github)](https://github.com/Tanish-o9/LLM-Data-Engine)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/)
+[![HuggingFace](https://img.shields.io/badge/HuggingFace-Transformers-FFD21E?logo=huggingface&logoColor=black)](https://huggingface.co/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-Studio-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
+
 A production-grade, human-readable data curation and LoRA fine-tuning pipeline for Large Language Models.
 
 This engine cleans, validates, deduplicates, filters, redacts PII, decontaminates, and optionally augments instruction-tuning datasets. It then compares model performance across three controlled data regimes (Raw vs. Cleaned vs. Cleaned + Synthetic) on a held-out benchmark.
@@ -122,7 +130,7 @@ LLM Data Engine/
 
 ### 2. Clone and Install Dependencies
 ```bash
-git clone <repo-url>
+git clone https://github.com/Tanish-o9/LLM-Data-Engine.git
 cd "LLM Data Engine"
 pip install -r requirements.txt
 ```
@@ -206,4 +214,24 @@ All engine rules and hyperparameters are centralized in `config.py`:
 - `DecontaminationConfig`: N-gram overlap size ($8$) and overlap ratio threshold ($0.70$).
 - `SyntheticConfig`: Groq model choice, generation count, and temperature.
 - `TrainingConfig`: Base model (`gpt2`), LoRA rank ($8$), alpha ($16$), batch size ($2$), epochs ($3$), and learning rate ($5\times 10^{-4}$).
+
+---
+
+## 👤 Author & References
+
+- **Author**: **Tanish**
+- **GitHub Profile**: [@Tanish-o9](https://github.com/Tanish-o9)
+- **Project Repository**: [Tanish-o9/LLM-Data-Engine](https://github.com/Tanish-o9/LLM-Data-Engine)
+- **Contact**: [tanishrajput673@gmail.com](mailto:tanishrajput673@gmail.com)
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for complete details.
+
+```text
+MIT License
+Copyright (c) 2026 Tanish
+```
 
