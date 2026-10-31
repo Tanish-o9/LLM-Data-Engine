@@ -1,0 +1,4 @@
+experiment,dataset_type,num_samples,training_time_sec,peak_gpu_mem_mb,device,final_train_loss,eval_loss,perplexity,judge_relevance,judge_coherence,judge_overall
+exp_1_raw,Raw Dataset,23,10.34,1584.48,cuda,3.0903,2.9477,19.06,3.7,4.14,4.95
+exp_2_cleaned,Cleaned Dataset,13,7.4,1583.48,cuda,3.0717,3.0182,20.45,4.9,3.76,5.0
+exp_3_cleaned_synthetic,Cleaned + Synthetic Dataset,13,8.29,1583.48,cuda,3.0769,2.9982,20.05,4.5,3.54,4.87

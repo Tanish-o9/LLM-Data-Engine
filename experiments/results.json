@@ -1,0 +1,155 @@
+[
+  {
+    "experiment_id": "exp_1_raw",
+    "experiment_name": "exp_1_raw",
+    "dataset_type": "Raw Dataset",
+    "model_name": "gpt2",
+    "checkpoint_dir": "C:\\Users\\tanis\\Projects\\LLM Data Engine\\experiments\\exp_1_raw",
+    "device": "cuda",
+    "training_time_seconds": 10.34,
+    "peak_gpu_memory_mb": 1584.48,
+    "num_epochs": 3,
+    "final_loss": 3.0903,
+    "epoch_losses": [
+      3.7979,
+      3.4384,
+      3.0903
+    ],
+    "num_samples_trained": 23,
+    "eval_loss": 2.9477,
+    "perplexity": 19.06,
+    "eval_samples_count": 5,
+    "sample_generations": [
+      {
+        "instruction": "What is the primary role of an activation function in neural networks?",
+        "generated_response": "An activation function is a function that activates a neuron by activating a specific part of the network. When the neuron's nucleus is activated, it releases an extra neuron, which then causes the network to become more active.",
+        "judge": {
+          "relevance": 4.1,
+          "coherence": 4.23,
+          "overall": 4.98,
+          "feedback": "Evaluated via rule-based heuristic scoring (Groq API key not set).",
+          "evaluator": "heuristic_judge"
+        }
+      },
+      {
+        "instruction": "Explain the concept of learning rate in optimization.",
+        "generated_response": "Optimization is the process of optimizing a training set using a subset of data, then training the set to be optimal.",
+        "judge": {
+          "relevance": 3.3,
+          "coherence": 4.05,
+          "overall": 4.92,
+          "feedback": "Evaluated via rule-based heuristic scoring (Groq API key not set).",
+          "evaluator": "heuristic_judge"
+        }
+      }
+    ],
+    "judge_scores": {
+      "avg_relevance": 3.7,
+      "avg_coherence": 4.14,
+      "avg_overall": 4.95,
+      "evaluator": "heuristic_judge"
+    }
+  },
+  {
+    "experiment_id": "exp_2_cleaned",
+    "experiment_name": "exp_2_cleaned",
+    "dataset_type": "Cleaned Dataset",
+    "model_name": "gpt2",
+    "checkpoint_dir": "C:\\Users\\tanis\\Projects\\LLM Data Engine\\experiments\\exp_2_cleaned",
+    "device": "cuda",
+    "training_time_seconds": 7.4,
+    "peak_gpu_memory_mb": 1583.48,
+    "num_epochs": 3,
+    "final_loss": 3.0717,
+    "epoch_losses": [
+      3.7663,
+      3.3085,
+      3.0717
+    ],
+    "num_samples_trained": 13,
+    "eval_loss": 3.0182,
+    "perplexity": 20.45,
+    "eval_samples_count": 5,
+    "sample_generations": [
+      {
+        "instruction": "What is the primary role of an activation function in neural networks?",
+        "generated_response": "An activation function is a neural network that learns a new task, and performs the corresponding action, when appropriate.",
+        "judge": {
+          "relevance": 4.9,
+          "coherence": 3.95,
+          "overall": 5.0,
+          "feedback": "Evaluated via rule-based heuristic scoring (Groq API key not set).",
+          "evaluator": "heuristic_judge"
+        }
+      },
+      {
+        "instruction": "Explain the concept of learning rate in optimization.",
+        "generated_response": "Learning rate is the rate at which the optimization step becomes optimal, and the optimal number of iterations to complete it.",
+        "judge": {
+          "relevance": 4.9,
+          "coherence": 3.57,
+          "overall": 5.0,
+          "feedback": "Evaluated via rule-based heuristic scoring (Groq API key not set).",
+          "evaluator": "heuristic_judge"
+        }
+      }
+    ],
+    "judge_scores": {
+      "avg_relevance": 4.9,
+      "avg_coherence": 3.76,
+      "avg_overall": 5.0,
+      "evaluator": "heuristic_judge"
+    }
+  },
+  {
+    "experiment_id": "exp_3_cleaned_synthetic",
+    "experiment_name": "exp_3_cleaned_synthetic",
+    "dataset_type": "Cleaned + Synthetic Dataset",
+    "model_name": "gpt2",
+    "checkpoint_dir": "C:\\Users\\tanis\\Projects\\LLM Data Engine\\experiments\\exp_3_cleaned_synthetic",
+    "device": "cuda",
+    "training_time_seconds": 8.29,
+    "peak_gpu_memory_mb": 1583.48,
+    "num_epochs": 3,
+    "final_loss": 3.0769,
+    "epoch_losses": [
+      3.9072,
+      3.3947,
+      3.0769
+    ],
+    "num_samples_trained": 13,
+    "eval_loss": 2.9982,
+    "perplexity": 20.05,
+    "eval_samples_count": 5,
+    "sample_generations": [
+      {
+        "instruction": "What is the primary role of an activation function in neural networks?",
+        "generated_response": "An activation function is a function that determines whether an input represents an input signal or an output signal. Activation functions are activated when they activate an input signal and when they inhibit an output signal.",
+        "judge": {
+          "relevance": 4.1,
+          "coherence": 3.33,
+          "overall": 4.73,
+          "feedback": "Evaluated via rule-based heuristic scoring (Groq API key not set).",
+          "evaluator": "heuristic_judge"
+        }
+      },
+      {
+        "instruction": "Explain the concept of learning rate in optimization.",
+        "generated_response": "Learning rate is the percentage of the total number of operations performed in an optimization program.",
+        "judge": {
+          "relevance": 4.9,
+          "coherence": 3.75,
+          "overall": 5.0,
+          "feedback": "Evaluated via rule-based heuristic scoring (Groq API key not set).",
+          "evaluator": "heuristic_judge"
+        }
+      }
+    ],
+    "judge_scores": {
+      "avg_relevance": 4.5,
+      "avg_coherence": 3.54,
+      "avg_overall": 4.87,
+      "evaluator": "heuristic_judge"
+    }
+  }
+]
